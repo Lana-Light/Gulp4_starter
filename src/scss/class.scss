@@ -1,0 +1,14 @@
+$red: hsl(18, 90%, 60%);
+$green: hsl(130, 90%, 60%);
+
+.top {
+	@include bor();
+}
+.green {
+	@include par($green, aliceblue);
+	font-size: 25px;
+	width: 300px;
+}
+.red {
+	@include par($red, pink);
+}

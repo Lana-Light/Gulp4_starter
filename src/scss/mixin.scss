@@ -1,0 +1,10 @@
+@mixin bor($col: gold) {
+	border: $col thick solid;
+	border-radius: 25%;
+}
+
+@mixin par($col, $back) {
+	color: $col;
+	background: $back;
+	@include bor($col);
+}
