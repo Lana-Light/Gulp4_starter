@@ -4,10 +4,15 @@
   "description": "gulp4 starter for pug and scss projects",
   "main": "index.js",
   "scripts": {
+    "pretty": "prettier --write ./src/{js7/**/*.js,scss/**/*.scss}",
     "test": "npm test"
   },
   "keywords": [
-    "gulp", "pug", "scss", "babel", "browserify"
+    "gulp",
+    "pug",
+    "scss",
+    "babel",
+    "browserify"
   ],
   "author": "Lana-Light",
   "license": "MIT",
@@ -15,7 +20,7 @@
     "@babel/core": "^7.3.4",
     "@babel/plugin-transform-runtime": "^7.3.4",
     "@babel/preset-env": "^7.3.4",
-    "browser-sync": "^2.26.3",
+    "browser-sync": "^2.26.7",
     "browserify": "^16.2.3",
     "del": "^4.0.0",
     "gulp": "^4.0.0",
@@ -28,8 +33,10 @@
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.0.0",
     "gulp-sass": "^4.0.2",
+    "gulp-sourcemaps": "^2.6.5",
     "gulp-uglify-es": "^1.0.4",
     "imagemin-advpng": "^5.0.0",
+    "prettier": "^1.18.2",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
   },
