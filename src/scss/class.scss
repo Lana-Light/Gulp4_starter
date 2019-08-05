@@ -1,14 +1,24 @@
 $red: hsl(18, 90%, 60%);
 $green: hsl(130, 90%, 60%);
 
+a {
+  @include md-block {
+    color: darkcyan;
+    text-decoration: none;
+  }
+  @include sm(background, yellow);
+  border-radius: 10px;
+  box-shadow: aqua 1px 1px 5px 1px;
+  text-align: center;
+}
 .top {
-	@include bor();
+  @include bor();
 }
 .green {
-	@include par($green, aliceblue);
-	font-size: 25px;
-	width: 300px;
+  @include par($green, aliceblue);
+  font-size: 25px;
+  width: 300px;
 }
 .red {
-	@include par($red, pink);
+  @include par($red, pink);
 }

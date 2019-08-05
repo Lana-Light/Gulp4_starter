@@ -10,13 +10,21 @@ const sourcemaps = require("gulp-sourcemaps");
 
 const pug = require("gulp-pug");
 const replace = require("gulp-replace");
+const smartgrid = require("smart-grid");
 const sass = require("gulp-sass");
-const cssnano = require("gulp-cssnano");
+const mq = require("gulp-group-css-media-queries");
+const postcss = require("gulp-postcss");
+const autoprefixer = require("autoprefixer");
+const cssnano = require("cssnano");
+
 const babel = require("gulp-babel");
 const uglify = require("gulp-uglify-es").default;
 const source = require("vinyl-source-stream");
 const buffer = require("vinyl-buffer");
-const browserify = require("browserify")({ entries: ["./src/js/all.js"], debug: true });
+const browserify = require("browserify")({
+  entries: ["./src/js/all.js"],
+  debug: true
+});
 
 const isDev = process.argv.includes("dev") || process.argv.includes("js");
 console.log(isDev);
@@ -30,13 +38,11 @@ function compJs() {
 }
 
 function bundle() {
-  return (
-    browserify
-      .bundle()
-      .pipe(source("all.js"))
-      .pipe(buffer())
-      .pipe(dest("src/js"))
-  );
+  return browserify
+    .bundle()
+    .pipe(source("all.js"))
+    .pipe(buffer())
+    .pipe(dest("src/js"));
 }
 
 function compSass() {
@@ -51,17 +57,51 @@ function min(doFun) {
   return (
     doFun()
       .pipe(gulpif(isDev, browserSync.stream()))
-      .pipe(gulpif(isDev, sourcemaps.init({ loadMaps: true })))
-      .pipe(gulpif("*.css", cssnano()))
+      //.pipe(gulpif(isDev, sourcemaps.init({ loadMaps: true })))
+      .pipe(gulpif("*.css", mq()))
+      .pipe(gulpif("*.css", postcss([autoprefixer(), cssnano()])))
       .pipe(gulpif("*.js", uglify({ ecma: 6 })))
       .pipe(rename({ suffix: ".min" }))
-      .pipe(gulpif(isDev, sourcemaps.write()))
+      //.pipe(gulpif(isDev, sourcemaps.write()))
       .pipe(gulpif("*.css", dest("dist/css")))
       .pipe(gulpif("*.js", dest("dist/js")))
   );
 }
 const minJs = () => min(bundle);
 const minCss = () => min(compSass);
+
+async function grid() {
+  let settings = {
+    outputStyle: "scss",
+    columns: 12,
+    offset: "30px",
+    //mobileFirst: true,
+    container: {
+      maxWidth: "1200px",
+      fields: "30px"
+    },
+    breakPoints: {
+      lg: {
+        width: "1100px"
+      },
+      md: {
+        width: "960px",
+        fields: "15px"
+      },
+      sm: {
+        width: "780px"
+      },
+      xs: {
+        width: "560px"
+      },
+      xxs: {
+        width: "420px"
+      }
+    }
+  };
+
+  smartgrid("./src/scss", settings);
+}
 
 const compPug = () =>
   src("src/pug/index.pug")
@@ -128,7 +168,9 @@ exports.build = series(
 
 exports.dev = series(
   cleanDist,
-  parallel(distView, series(compJs, minJs), minCss, watchWrap)
+  parallel(distView, series(compJs, minJs), minCss),
+  watchWrap
 );
 
+exports.grid = grid;
 exports.clean = clean;

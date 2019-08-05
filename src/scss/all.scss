@@ -1,1 +1,34 @@
-@import 'mixin.scss', 'class.scss';
+@import "smart-grid.scss";
+@import "mixin.scss", "class.scss";
+
+//test the autoprefixer
+::placeholder {
+  color: gray;
+}
+
+//test the gulp-group-css-media-queries
+@media (min-width: 500px) {
+  p {
+    color: cornflowerblue;
+  }
+}
+@media (min-width: 500px) {
+  h2 {
+    color: darkcyan;
+  }
+}
+
+//test the smart-grid
+body {
+  @include wrapper-full;
+}
+nav {
+  @include row-flex;
+  justify-content: center;
+}
+a {
+  @include col;
+  @include size(2);
+  @include size-md(3);
+  @include size-sm(4);
+}

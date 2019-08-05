@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "gulp4 starter for pug and scss projects",
   "main": "index.js",
+  "browserslist": [
+    "> 1%",
+    "not ie 11",
+    "not dead"
+  ],
   "scripts": {
     "pretty": "prettier --write ./src/{js7/**/*.js,scss/**/*.scss}",
     "test": "npm test"
@@ -20,15 +25,19 @@
     "@babel/core": "^7.3.4",
     "@babel/plugin-transform-runtime": "^7.3.4",
     "@babel/preset-env": "^7.3.4",
+    "autoprefixer": "^9.6.1",
     "browser-sync": "^2.26.7",
     "browserify": "^16.2.3",
+    "browserslist": "^4.6.6",
+    "cssnano": "^4.1.10",
     "del": "^4.0.0",
     "gulp": "^4.0.0",
     "gulp-babel": "^8.0.0",
     "gulp-cache": "^1.1.1",
-    "gulp-cssnano": "^2.1.3",
+    "gulp-group-css-media-queries": "^1.2.2",
     "gulp-if": "^2.0.2",
     "gulp-imagemin": "^5.0.3",
+    "gulp-postcss": "^8.0.0",
     "gulp-pug": "^4.0.1",
     "gulp-rename": "^1.4.0",
     "gulp-replace": "^1.0.0",
@@ -37,6 +46,7 @@
     "gulp-uglify-es": "^1.0.4",
     "imagemin-advpng": "^5.0.0",
     "prettier": "^1.18.2",
+    "smart-grid": "^2.1.2",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
   },

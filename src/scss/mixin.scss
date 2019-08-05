@@ -1,6 +1,6 @@
 @mixin bor($col: gold) {
 	border: $col thick solid;
-	border-radius: 25%;
+	border-radius: 25px;
 }
 
 @mixin par($col, $back) {
