@@ -7,6 +7,7 @@ const cache = require("gulp-cache");
 const gulpif = require("gulp-if");
 const rename = require("gulp-rename");
 const sourcemaps = require("gulp-sourcemaps");
+const plumber = require("gulp-plumber");
 
 const pug = require("gulp-pug");
 const replace = require("gulp-replace");
@@ -26,11 +27,12 @@ const browserify = require("browserify")({
   debug: true
 });
 
-const isDev = process.argv.includes("dev") || process.argv.includes("js");
+const isDev = process.argv.includes("dev");
 console.log(isDev);
 
 function compJs() {
   return src("src/js7/**/*.js")
+    .pipe(plumber())
     .pipe(gulpif(isDev, sourcemaps.init()))
     .pipe(babel())
     .pipe(gulpif(isDev, sourcemaps.write()))
@@ -42,33 +44,35 @@ function bundle() {
     .bundle()
     .pipe(source("all.js"))
     .pipe(buffer())
-    .pipe(dest("src/js"));
+    .pipe(plumber())
+    .pipe(gulpif(isDev, dest("src/js")))
+    .pipe(gulpif(isDev, browserSync.stream()));
 }
 
 function compSass() {
   return src("src/scss/all.scss")
+    .pipe(plumber())
     .pipe(gulpif(isDev, sourcemaps.init()))
-    .pipe(sass())
-    .pipe(sourcemaps.write())
-    .pipe(dest("src/css"));
+    .pipe(sass().on("error", sass.logError))
+    .pipe(gulpif(isDev, sourcemaps.write()))
+    .pipe(gulpif(isDev, dest("src/css")))
+    .pipe(gulpif(isDev, browserSync.stream()));
 }
 
-function min(doFun) {
-  return (
-    doFun()
-      .pipe(gulpif(isDev, browserSync.stream()))
-      //.pipe(gulpif(isDev, sourcemaps.init({ loadMaps: true })))
-      .pipe(gulpif("*.css", mq()))
-      .pipe(gulpif("*.css", postcss([autoprefixer(), cssnano()])))
-      .pipe(gulpif("*.js", uglify({ ecma: 6 })))
-      .pipe(rename({ suffix: ".min" }))
-      //.pipe(gulpif(isDev, sourcemaps.write()))
-      .pipe(gulpif("*.css", dest("dist/css")))
-      .pipe(gulpif("*.js", dest("dist/js")))
-  );
+function minJs() {
+  return bundle()
+    .pipe(uglify({ ecma: 6 }))
+    .pipe(rename({ suffix: ".min" }))
+    .pipe(dest("dist/js"));
 }
-const minJs = () => min(bundle);
-const minCss = () => min(compSass);
+
+function minCss() {
+  return compSass()
+    .pipe(mq())
+    .pipe(postcss([autoprefixer(), cssnano()]))
+    .pipe(rename({ suffix: ".min" }))
+    .pipe(dest("dist/css"));
+}
 
 async function grid() {
   let settings = {
@@ -105,8 +109,9 @@ async function grid() {
 
 const compPug = () =>
   src("src/pug/index.pug")
+    .pipe(plumber())
     .pipe(pug())
-    .pipe(dest("src"));
+    .pipe(gulpif(isDev, dest("src")));
 
 const distView = () =>
   compPug()
@@ -116,9 +121,9 @@ const distView = () =>
 
 async function watchWrap() {
   browserSync.init({ server: "src" });
-  watch("src/pug/**", distView);
-  watch("src/scss/**", minCss);
-  watch("src/js7/**", series(compJs, minJs));
+  watch("src/pug/**", compPug);
+  watch("src/scss/**", compSass);
+  watch("src/js7/**", series(compJs, bundle));
   watch("src/*.html").on("change", browserSync.reload);
 }
 
@@ -146,31 +151,37 @@ function image() {
     .pipe(dest("dist/images"));
 }
 
-async function clean() {
-  await del([
-    "dist/**",
-    "!dist",
-    "src/js/**",
-    "!src/js",
-    "src/css/**",
-    "!src/css"
-  ]);
+const pathsToDel = [
+  "dist/**",
+  "!dist",
+  "src/js/**",
+  "!src/js",
+  "src/css/**",
+  "!src/css"
+];
+
+async function cleanHard() {
+  await del(pathsToDel);
   return cache.clearAll();
 }
 
-var cleanDist = async () =>
-  del(["dist/**", "!dist", "!dist/images", "!dist/images/*"]);
+const clean = async () =>
+  del(pathsToDel.concat(["!dist/images", "!dist/images/*"]));
 
 exports.build = series(
-  cleanDist,
+  clean,
   parallel(font, image, distView, minCss, series(compJs, minJs))
 );
 
 exports.dev = series(
-  cleanDist,
-  parallel(distView, series(compJs, minJs), minCss),
+  clean,
+  parallel(compPug, series(compJs, bundle), compSass),
   watchWrap
 );
 
 exports.grid = grid;
-exports.clean = clean;
+exports.clean = cleanHard;
+exports.html = distView;
+exports.css = minCss;
+exports.js = series(compJs, minJs);
+exports.img = image;
