@@ -28,14 +28,16 @@ const browserify = require("browserify")({
 });
 
 const isDev = process.argv.includes("dev");
+const isWatch = process.argv.includes("watch");
+const isDevOrWatch = isDev || isWatch;
 console.log(isDev);
 
 function compJs() {
   return src("src/js7/**/*.js")
     .pipe(plumber())
-    .pipe(gulpif(isDev, sourcemaps.init()))
+    .pipe(gulpif(isDevOrWatch, sourcemaps.init()))
     .pipe(babel())
-    .pipe(gulpif(isDev, sourcemaps.write()))
+    .pipe(gulpif(isDevOrWatch, sourcemaps.write()))
     .pipe(dest("src/js"));
 }
 
@@ -45,17 +47,17 @@ function bundle() {
     .pipe(source("all.js"))
     .pipe(buffer())
     .pipe(plumber())
-    .pipe(gulpif(isDev, dest("src/js")))
+    .pipe(gulpif(isDevOrWatch, dest("src/js")))
     .pipe(gulpif(isDev, browserSync.stream()));
 }
 
 function compSass() {
   return src("src/scss/all.scss")
     .pipe(plumber())
-    .pipe(gulpif(isDev, sourcemaps.init()))
+    .pipe(gulpif(isDevOrWatch, sourcemaps.init()))
     .pipe(sass().on("error", sass.logError))
-    .pipe(gulpif(isDev, sourcemaps.write()))
-    .pipe(gulpif(isDev, dest("src/css")))
+    .pipe(gulpif(isDevOrWatch, sourcemaps.write()))
+    .pipe(gulpif(isDevOrWatch, dest("src/css")))
     .pipe(gulpif(isDev, browserSync.stream()));
 }
 
@@ -111,7 +113,7 @@ const compPug = () =>
   src("src/pug/index.pug")
     .pipe(plumber())
     .pipe(pug())
-    .pipe(gulpif(isDev, dest("src")));
+    .pipe(gulpif(isDevOrWatch, dest("src")));
 
 const distView = () =>
   compPug()
@@ -120,11 +122,17 @@ const distView = () =>
     .pipe(dest("dist"));
 
 async function watchWrap() {
-  browserSync.init({ server: "src" });
-  watch("src/pug/**", compPug);
-  watch("src/scss/**", compSass);
-  watch("src/js7/**", series(compJs, bundle));
-  watch("src/*.html").on("change", browserSync.reload);
+  if (isDev) {
+    browserSync.init({ server: "src" });
+    watch("src/pug/**", compPug);
+    watch("src/scss/**", compSass);
+    watch("src/js7/**", series(compJs, bundle));
+    watch("src/*.html").on("change", browserSync.reload);
+  } else if (isDevOrWatch) {
+    watch("src/pug/**", distView);
+    watch("src/scss/**", minCss);
+    watch("src/js7/**", series(compJs, minJs));
+  }
 }
 
 function font() {
@@ -176,6 +184,12 @@ exports.build = series(
 exports.dev = series(
   clean,
   parallel(compPug, series(compJs, bundle), compSass),
+  watchWrap
+);
+
+exports.watch = series(
+  clean,
+  parallel(distView, series(compJs, minJs), minCss),
   watchWrap
 );
 
