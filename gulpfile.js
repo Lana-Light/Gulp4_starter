@@ -1,3 +1,4 @@
+const path = require("path");
 const { watch, src, dest, series, parallel } = require("gulp");
 const browserSync = require("browser-sync").create();
 const del = require("del");
@@ -18,38 +19,48 @@ const postcss = require("gulp-postcss");
 const autoprefixer = require("autoprefixer");
 const cssnano = require("cssnano");
 
-const babel = require("gulp-babel");
 const uglify = require("gulp-uglify-es").default;
 const source = require("vinyl-source-stream");
 const buffer = require("vinyl-buffer");
-const browserify = require("browserify")({
-  entries: ["./src/js/all.js"],
-  debug: true
-});
+const browserify = require("browserify");
 
 const isDev = process.argv.includes("dev");
 const isWatch = process.argv.includes("watch");
 const isDevOrWatch = isDev || isWatch;
 console.log(isDev);
 
-function compJs() {
-  return src("src/js7/**/*.js")
-    .pipe(plumber())
-    .pipe(gulpif(isDevOrWatch, sourcemaps.init()))
-    .pipe(babel())
-    .pipe(gulpif(isDevOrWatch, sourcemaps.write()))
-    .pipe(dest("src/js"));
-}
+const configES5 = path.join(__dirname, "babel.config-es5.js");
+const configES6 = path.join(__dirname, "babel.config.js");
 
-function bundle() {
-  return browserify
+function bundle(configFile = configES6) {
+  const isES5 = configFile === configES5;
+  return browserify({
+    entries: ["./src/js7/all.js"],
+    debug: true
+  })
+    .transform("babelify", { configFile })
     .bundle()
     .pipe(source("all.js"))
     .pipe(buffer())
     .pipe(plumber())
+    .pipe(gulpif(isES5, rename({ suffix: "-es5" })))
+    .pipe(gulpif(!isES5, rename({ extname: ".mjs" })))
     .pipe(gulpif(isDevOrWatch, dest("src/js")))
     .pipe(gulpif(isDev, browserSync.stream()));
 }
+
+function minJs(configFile) {
+  return bundle(configFile)
+    .pipe(uglify({ ecma: 6 }))
+    .pipe(rename({ suffix: ".min" }))
+    .pipe(dest("dist/js"));
+}
+
+const bundleES5 = () => bundle(configES5);
+const minES5 = () => minJs(configES5);
+
+const bundleES6 = () => bundle();
+const minES6 = () => minJs();
 
 function compSass() {
   return src("src/scss/all.scss")
@@ -59,13 +70,6 @@ function compSass() {
     .pipe(gulpif(isDevOrWatch, sourcemaps.write()))
     .pipe(gulpif(isDevOrWatch, dest("src/css")))
     .pipe(gulpif(isDev, browserSync.stream()));
-}
-
-function minJs() {
-  return bundle()
-    .pipe(uglify({ ecma: 6 }))
-    .pipe(rename({ suffix: ".min" }))
-    .pipe(dest("dist/js"));
 }
 
 function minCss() {
@@ -118,6 +122,7 @@ const compPug = () =>
 const distView = () =>
   compPug()
     .pipe(replace("all.css", "all.min.css"))
+    .pipe(replace("all-es5.js", "all-es5.min.js"))
     .pipe(replace("all.js", "all.min.js"))
     .pipe(dest("dist"));
 
@@ -126,12 +131,12 @@ async function watchWrap() {
     browserSync.init({ server: "src" });
     watch("src/pug/**", compPug);
     watch("src/scss/**", compSass);
-    watch("src/js7/**", series(compJs, bundle));
+    watch("src/js7/**", parallel(bundleES5, bundleES6));
     watch("src/*.html").on("change", browserSync.reload);
   } else if (isDevOrWatch) {
     watch("src/pug/**", distView);
     watch("src/scss/**", minCss);
-    watch("src/js7/**", series(compJs, minJs));
+    watch("src/js7/**", parallel(minES5, minES6));
   }
 }
 
@@ -178,18 +183,18 @@ const clean = async () =>
 
 exports.build = series(
   clean,
-  parallel(font, image, distView, minCss, series(compJs, minJs))
+  parallel(font, image, distView, minCss, minES5, minES6)
 );
 
 exports.dev = series(
   clean,
-  parallel(compPug, series(compJs, bundle), compSass),
+  parallel(compPug, bundleES5, bundleES6, compSass),
   watchWrap
 );
 
 exports.watch = series(
   clean,
-  parallel(distView, series(compJs, minJs), minCss),
+  parallel(distView, minES5, minES6, minCss),
   watchWrap
 );
 
@@ -197,5 +202,5 @@ exports.grid = grid;
 exports.clean = cleanHard;
 exports.html = distView;
 exports.css = minCss;
-exports.js = series(compJs, minJs);
+exports.js = parallel(minES5, minES6);
 exports.img = image;

@@ -1,3 +1,3 @@
-require('./cycle');
-require('./async');
-require('./builtins');
+import "./cycle";
+import "./async";
+import "./builtins";
