@@ -5,7 +5,8 @@ html(lang="en")
     meta(name="viewport", content="width=device-width, initial-scale=1")
     title pageTitle
     link(rel="stylesheet", href="./css/all.css")
-    script(nomodule="", src="./js/all-es5.js")
+    include safari-nomodule-shim.pug
+    script(defer, nomodule="", src="./js/all-es5.js")
     script(type="module", src="./js/all.mjs")
   body
     include header.pug

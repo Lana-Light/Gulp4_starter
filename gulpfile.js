@@ -116,7 +116,7 @@ async function grid() {
 const compPug = () =>
   src("src/pug/index.pug")
     .pipe(plumber())
-    .pipe(pug())
+    .pipe(pug({ pretty: true }))
     .pipe(gulpif(isDevOrWatch, dest("src")));
 
 const distView = () =>
